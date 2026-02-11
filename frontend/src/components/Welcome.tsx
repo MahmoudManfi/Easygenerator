@@ -1,7 +1,7 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import './Welcome.css';
+import React from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import "./Welcome.css";
 
 const Welcome: React.FC = () => {
   const navigate = useNavigate();
@@ -9,7 +9,7 @@ const Welcome: React.FC = () => {
 
   const handleLogout = () => {
     logout();
-    navigate('/signin');
+    void navigate("/signin");
   };
 
   return (
@@ -26,4 +26,3 @@ const Welcome: React.FC = () => {
 };
 
 export default Welcome;
-

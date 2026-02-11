@@ -1,16 +1,16 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
-import SignUp from './components/SignUp';
-import SignIn from './components/SignIn';
-import Welcome from './components/Welcome';
-import ProtectedRoute from './components/ProtectedRoute';
-import './App.css';
+import React from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider } from "./context/AuthContext";
+import SignUp from "./components/SignUp";
+import SignIn from "./components/SignIn";
+import Welcome from "./components/Welcome";
+import ProtectedRoute from "./components/ProtectedRoute";
+import "./App.css";
 
 const App: React.FC = () => {
   return (
     <AuthProvider>
-      <Router>
+      <BrowserRouter>
         <div className="App">
           <Routes>
             <Route path="/signup" element={<SignUp />} />
@@ -26,10 +26,9 @@ const App: React.FC = () => {
             <Route path="/" element={<Navigate to="/signin" replace />} />
           </Routes>
         </div>
-      </Router>
+      </BrowserRouter>
     </AuthProvider>
   );
 };
 
 export default App;
-

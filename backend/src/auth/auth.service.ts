@@ -55,7 +55,10 @@ export class AuthService {
       if (error instanceof ConflictException) {
         throw error;
       }
-      this.logger.error(`Error during sign up: ${error.message}`, error.stack);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Error during sign up: ${errorMessage}`, errorStack);
       throw error;
     }
   }
@@ -89,7 +92,10 @@ export class AuthService {
       if (error instanceof UnauthorizedException) {
         throw error;
       }
-      this.logger.error(`Error during sign in: ${error.message}`, error.stack);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Error during sign in: ${errorMessage}`, errorStack);
       throw error;
     }
   }
@@ -98,4 +104,3 @@ export class AuthService {
     return this.userModel.findById(userId).exec();
   }
 }
-

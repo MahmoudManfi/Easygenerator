@@ -3,6 +3,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { WinstonModule } from 'nest-winston';
 import * as winston from 'winston';
+import type { TransformableInfo } from 'logform';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
@@ -13,7 +14,15 @@ async function bootstrap() {
         format: winston.format.combine(
           winston.format.timestamp(),
           winston.format.colorize(),
-          winston.format.printf(({ timestamp, level, message, context, trace }) => {
+          winston.format.printf((info: TransformableInfo) => {
+            const timestamp =
+              typeof info.timestamp === 'string' ? info.timestamp : '';
+            const level = typeof info.level === 'string' ? info.level : '';
+            const message =
+              typeof info.message === 'string' ? info.message : '';
+            const context =
+              typeof info.context === 'string' ? info.context : '';
+            const trace = typeof info.trace === 'string' ? info.trace : '';
             return `${timestamp} [${context}] ${level}: ${message}${trace ? `\n${trace}` : ''}`;
           }),
         ),
@@ -77,7 +86,13 @@ async function bootstrap() {
 
   const port = process.env.PORT || 3000;
   await app.listen(port);
-  logger.log(`Application is running on: http://localhost:${port}`, 'Bootstrap');
-  logger.log(`Swagger documentation: http://localhost:${port}/api`, 'Bootstrap');
+  logger.log(
+    `Application is running on: http://localhost:${port}`,
+    'Bootstrap',
+  );
+  logger.log(
+    `Swagger documentation: http://localhost:${port}/api`,
+    'Bootstrap',
+  );
 }
-bootstrap();
+void bootstrap();

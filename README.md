@@ -126,21 +126,54 @@ All services are connected via a Docker network and have health checks configure
 
 - `POST /auth/signup` - Register a new user
   - Body: `{ email: string, name: string, password: string }`
+  - Validation:
+    - Email: Must be a valid email format
+    - Name: Minimum 3 characters
+    - Password: Minimum 8 characters, must contain at least one letter, one number, and one special character (@$!%*#?&)
   - Returns: `{ access_token: string }`
+  - Status Codes: `201` (Created), `400` (Validation Error), `409` (User Already Exists)
 
 - `POST /auth/signin` - Sign in existing user
   - Body: `{ email: string, password: string }`
+  - Validation:
+    - Email: Must be a valid email format
+    - Password: Required
   - Returns: `{ access_token: string }`
+  - Status Codes: `200` (OK), `400` (Validation Error), `401` (Invalid Credentials)
 
 ### Protected Endpoints
 
 - `GET /protected` - Protected endpoint (requires JWT token)
   - Headers: `Authorization: Bearer <token>`
-  - Returns: `{ message: string, user: object }`
+  - Returns: `{ message: string, user: { userId: string, email: string } }`
+  - Status Codes: `200` (OK), `401` (Unauthorized)
+
+### Other Endpoints
+
+- `GET /` - Health check endpoint
+  - Returns: `"Hello World!"`
 
 ## API Documentation
 
 Once the Docker containers are running, visit `http://localhost:3000/api` to access the Swagger API documentation. You can test all endpoints directly from the Swagger UI.
+
+The Swagger documentation includes:
+- Interactive API testing interface
+- Request/response schemas
+- Authentication support (JWT Bearer token)
+- Example requests and responses
+- Status code documentation
+
+## Frontend Routes
+
+The React application includes the following routes:
+
+- `/signup` - User registration page
+- `/signin` - User login page (default route)
+- `/app` - Protected welcome page (requires authentication)
+- `/` - Redirects to `/signin`
+
+All routes are handled by React Router, and the `/app` route is protected by the `ProtectedRoute` component, which redirects unauthenticated users to `/signin`.
 
 ## Project Structure
 
@@ -160,11 +193,18 @@ Easygenerator/
 │   │   ├── schemas/
 │   │   │   └── user.schema.ts
 │   │   ├── app.controller.ts
+│   │   ├── app.controller.spec.ts
 │   │   ├── app.module.ts
-│   │   └── main.ts
+│   │   ├── app.service.ts
+│   │   ├── main.ts
+│   │   └── test/
+│   │       ├── app.e2e-spec.ts
+│   │       └── jest-e2e.json
 │   ├── Dockerfile
-│   ├── .dockerignore
-│   └── package.json
+│   ├── eslint.config.mjs
+│   ├── package.json
+│   ├── tsconfig.json
+│   └── logs/ (created at runtime)
 ├── frontend/
 │   ├── src/
 │   │   ├── api/
@@ -182,10 +222,14 @@ Easygenerator/
 │   │   ├── App.css
 │   │   ├── index.tsx
 │   │   └── index.css
+│   ├── public/
+│   │   ├── index.html
+│   │   └── favicon.ico
 │   ├── Dockerfile
 │   ├── nginx.conf
-│   ├── .dockerignore
-│   └── package.json
+│   ├── eslint.config.mjs
+│   ├── package.json
+│   └── tsconfig.json
 ├── docker-compose.yml
 ├── .env.example
 └── README.md
@@ -249,7 +293,7 @@ FRONTEND_URL=http://localhost
 - ✅ Modify ports without editing docker-compose.yml
 - ✅ All changes in one place (`.env` file)
 
-**Note:** The backend automatically builds the MongoDB connection string from the credentials. If you need to use MongoDB Atlas or an external database, you would need to modify the backend code to support `MONGODB_URI` environment variable.
+**Note:** The backend automatically uses `MONGODB_URI` if provided (for MongoDB Atlas or external databases), otherwise it builds the connection string from the local Docker MongoDB credentials (`MONGO_ROOT_USERNAME`, `MONGO_ROOT_PASSWORD`, `MONGO_INITDB_DATABASE`). The connection string format is: `mongodb://username:password@mongodb:27017/database?authSource=admin`
 
 **Example: Change MongoDB port:**
 ```env
@@ -258,9 +302,13 @@ MONGODB_PORT=27018  # Access via localhost:27018
 
 ### Ports
 
-- **Frontend**: Port 80 (http://localhost)
-- **Backend**: Port 3000 (http://localhost:3000)
-- **MongoDB**: Port 27017 (localhost:27017)
+The default ports can be customized via environment variables in `.env`:
+
+- **Frontend**: Port 80 (http://localhost) - Configured via `FRONTEND_PORT`
+- **Backend**: Port 3000 (http://localhost:3000) - Configured via `BACKEND_PORT`
+- **MongoDB**: Port 27017 (localhost:27017) - Configured via `MONGODB_PORT`
+
+**Note:** The internal container ports (3000 for backend, 80 for frontend, 27017 for MongoDB) remain fixed. Only the external host ports can be changed via environment variables.
 
 ### Volumes
 
@@ -269,10 +317,24 @@ MONGODB_PORT=27018  # Access via localhost:27018
 
 ### Health Checks
 
-All services include health checks:
-- **MongoDB**: Checks database connectivity using `mongosh ping`
-- **Backend**: Checks HTTP endpoint availability on internal port 3000
-- **Frontend**: Checks Nginx `/health` endpoint on internal port 80
+All services include health checks to ensure they're running properly:
+
+- **MongoDB**: 
+  - Command: `mongosh --quiet --eval "quit(db.adminCommand('ping').ok ? 0 : 1)"`
+  - Checks database connectivity
+  - Interval: 10s, Timeout: 5s, Retries: 5, Start period: 40s
+
+- **Backend**: 
+  - Command: `wget --no-verbose --tries=1 --spider http://localhost:$PORT || exit 1`
+  - Checks HTTP endpoint availability on internal port 3000
+  - Interval: 30s, Timeout: 10s, Retries: 3, Start period: 40s
+
+- **Frontend**: 
+  - Command: `wget --no-verbose --tries=1 --spider http://localhost/health || exit 1`
+  - Checks Nginx `/health` endpoint on internal port 80
+  - Interval: 30s, Timeout: 10s, Retries: 3, Start period: 10s
+
+Health checks ensure that dependent services wait for upstream services to be ready before starting.
 
 ### Building Individual Services
 
@@ -295,11 +357,15 @@ docker-compose up backend
 
 - ⚠️ **`.env` file is REQUIRED** - Docker Compose will fail if it doesn't exist or if any required variable is missing
 - ⚠️ **No default values** - All environment variables must be explicitly set in `.env` file
-- MongoDB connection string is automatically built from credentials in the backend code
-- MongoDB data is persisted in a Docker volume (`mongodb_data`), so data will survive container restarts
-- Backend logs are available in `./backend/logs` directory (mounted as volume)
-- To reset everything, use `docker-compose down -v` (this will remove all data including MongoDB)
-- Health checks ensure services are ready before dependent services start
+- ✅ **MongoDB Connection**: The backend automatically uses `MONGODB_URI` if provided (for MongoDB Atlas), otherwise builds the connection string from Docker MongoDB credentials
+- ✅ **Data Persistence**: MongoDB data is persisted in a Docker volume (`mongodb_data`), so data will survive container restarts
+- ✅ **Logging**: Backend logs are available in `./backend/logs` directory (mounted as volume):
+  - `error.log`: Error-level logs only
+  - `combined.log`: All logs (info, warn, error)
+- ⚠️ **Reset Everything**: Use `docker-compose down -v` to remove all containers and volumes (this will delete all MongoDB data)
+- ✅ **Health Checks**: Services wait for upstream dependencies to be healthy before starting
+- ✅ **CORS**: Backend CORS is configured to allow requests from `FRONTEND_URL` (defaults to `http://localhost:3001` if not set)
+- ✅ **JWT Tokens**: Tokens expire after 24 hours (configurable in `auth.module.ts`)
 
 ## Technologies Used
 

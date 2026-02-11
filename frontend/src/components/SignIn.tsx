@@ -1,15 +1,15 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { authApi } from '../api/authApi';
-import './Auth.css';
+import React, { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { authApi } from "../api/authApi";
+import "./Auth.css";
 
 const SignIn: React.FC = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
+    email: "",
+    password: "",
   });
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -24,7 +24,7 @@ const SignIn: React.FC = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
     // Clear error when user starts typing
     if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: '' }));
+      setErrors((prev) => ({ ...prev, [name]: "" }));
     }
   };
 
@@ -35,14 +35,14 @@ const SignIn: React.FC = () => {
 
     // Validate email
     if (!formData.email) {
-      newErrors.email = 'Email is required';
+      newErrors.email = "Email is required";
     } else if (!validateEmail(formData.email)) {
-      newErrors.email = 'Please provide a valid email address';
+      newErrors.email = "Please provide a valid email address";
     }
 
     // Validate password
     if (!formData.password) {
-      newErrors.password = 'Password is required';
+      newErrors.password = "Password is required";
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -54,13 +54,21 @@ const SignIn: React.FC = () => {
     try {
       const response = await authApi.signIn(formData);
       login(response.access_token);
-      navigate('/app');
-    } catch (error: any) {
-      if (error.response) {
-        const message = error.response.data?.message || 'Invalid credentials';
+      void navigate("/app");
+    } catch (error) {
+      if (
+        error &&
+        typeof error === "object" &&
+        "response" in error &&
+        error.response &&
+        typeof error.response === "object" &&
+        "data" in error.response
+      ) {
+        const errorData = error.response.data as { message?: string };
+        const message = errorData.message || "Invalid credentials";
         setErrors({ submit: message });
       } else {
-        setErrors({ submit: 'Network error. Please try again.' });
+        setErrors({ submit: "Network error. Please try again." });
       }
     } finally {
       setIsSubmitting(false);
@@ -71,7 +79,11 @@ const SignIn: React.FC = () => {
     <div className="auth-container">
       <div className="auth-card">
         <h2>Sign In</h2>
-        <form onSubmit={handleSubmit}>
+        <form
+          onSubmit={(e) => {
+            void handleSubmit(e);
+          }}
+        >
           <div className="form-group">
             <label htmlFor="email">Email</label>
             <input
@@ -80,10 +92,12 @@ const SignIn: React.FC = () => {
               name="email"
               value={formData.email}
               onChange={handleChange}
-              className={errors.email ? 'error' : ''}
+              className={errors.email ? "error" : ""}
               placeholder="Enter your email"
             />
-            {errors.email && <span className="error-message">{errors.email}</span>}
+            {errors.email && (
+              <span className="error-message">{errors.email}</span>
+            )}
           </div>
 
           <div className="form-group">
@@ -94,7 +108,7 @@ const SignIn: React.FC = () => {
               name="password"
               value={formData.password}
               onChange={handleChange}
-              className={errors.password ? 'error' : ''}
+              className={errors.password ? "error" : ""}
               placeholder="Enter your password"
             />
             {errors.password && (
@@ -106,13 +120,17 @@ const SignIn: React.FC = () => {
             <div className="error-message submit-error">{errors.submit}</div>
           )}
 
-          <button type="submit" disabled={isSubmitting} className="submit-button">
-            {isSubmitting ? 'Signing In...' : 'Sign In'}
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="submit-button"
+          >
+            {isSubmitting ? "Signing In..." : "Sign In"}
           </button>
         </form>
 
         <p className="auth-link">
-          Don't have an account? <Link to="/signup">Sign Up</Link>
+          Don&apos;t have an account? <Link to="/signup">Sign Up</Link>
         </p>
       </div>
     </div>
@@ -120,4 +138,3 @@ const SignIn: React.FC = () => {
 };
 
 export default SignIn;
-

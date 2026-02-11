@@ -1,5 +1,11 @@
 import { Controller, Get, UseGuards, Request } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import type { Request as ExpressRequest } from 'express';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { AppService } from './app.service';
 
@@ -33,7 +39,10 @@ export class AppController {
     },
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  getProtected(@Request() req) {
+  getProtected(
+    @Request()
+    req: ExpressRequest & { user?: { userId: string; email: string } },
+  ) {
     return {
       message: 'This is a protected endpoint',
       user: req.user,

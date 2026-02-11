@@ -19,7 +19,8 @@ export class SignUpDto {
   name: string;
 
   @ApiProperty({
-    description: 'User password (min 8 chars, at least one letter, one number, one special character)',
+    description:
+      'User password (min 8 chars, at least one letter, one number, one special character)',
     example: 'Password123!',
     minLength: 8,
   })
@@ -31,4 +32,3 @@ export class SignUpDto {
   })
   password: string;
 }
-
