@@ -31,72 +31,94 @@ A production-ready authentication application built with NestJS (backend) and Re
 
 ## Prerequisites
 
-- Node.js (v14 or higher)
-- npm or yarn
-- MongoDB (local installation or MongoDB Atlas)
+- Docker (v20 or higher)
+- Docker Compose (v2 or higher)
 
-## Installation
+## Getting Started
 
-### Backend Setup
+This application runs entirely using Docker Compose. It will set up all services (MongoDB, Backend, Frontend) automatically.
 
-1. Navigate to the backend directory:
+### Steps
+
+1. **Clone the repository** (if you haven't already):
 ```bash
-cd backend
+git clone <repository-url>
+cd Easygenerator
 ```
 
-2. Install dependencies:
+2. **Create and configure environment file** (REQUIRED):
 ```bash
-npm install
+cp .env.example .env
+# Edit .env and fill in ALL required values (no defaults - will fail if missing)
+nano .env  # or use your preferred editor
 ```
 
-3. Create a `.env` file in the backend directory:
-```env
-MONGODB_URI=mongodb://localhost:27017/easygenerator
-JWT_SECRET=your-secret-key-change-in-production
-PORT=3000
-FRONTEND_URL=http://localhost:3001
-```
+**Note:** The `.env` file is REQUIRED. Docker Compose will fail if:
+- `.env` file doesn't exist
+- Any required variable is missing or empty
 
-4. Make sure MongoDB is running on your system or update `MONGODB_URI` to point to your MongoDB instance.
-
-### Frontend Setup
-
-1. Navigate to the frontend directory:
+3. **Start all services**:
 ```bash
-cd frontend
+docker-compose up -d
 ```
 
-2. Install dependencies:
+This will:
+- Build and start MongoDB container
+- Build and start Backend container (NestJS API)
+- Build and start Frontend container (React app with Nginx)
+
+4. **Access the application**:
+- Frontend: http://localhost
+- Backend API: http://localhost:3000
+- Swagger Documentation: http://localhost:3000/api
+- MongoDB: localhost:27017
+
+### Docker Commands
+
+**Start services:**
 ```bash
-npm install
+docker-compose up -d
 ```
 
-3. Create a `.env` file in the frontend directory (optional, defaults are set):
-```env
-REACT_APP_API_URL=http://localhost:3000
-```
-
-## Running the Application
-
-### Start Backend
-
-From the backend directory:
+**Stop services:**
 ```bash
-npm run start:dev
+docker-compose down
 ```
 
-The backend will run on `http://localhost:3000`
-- API endpoints: `http://localhost:3000`
-- Swagger documentation: `http://localhost:3000/api`
-
-### Start Frontend
-
-From the frontend directory:
+**View logs:**
 ```bash
-npm start
+# All services
+docker-compose logs -f
+
+# Specific service
+docker-compose logs -f backend
+docker-compose logs -f frontend
+docker-compose logs -f mongodb
 ```
 
-The frontend will run on `http://localhost:3001` (or the next available port)
+**Rebuild containers (after code changes):**
+```bash
+docker-compose up -d --build
+```
+
+**Stop and remove volumes (clean slate):**
+```bash
+docker-compose down -v
+```
+
+**Check service status:**
+```bash
+docker-compose ps
+```
+
+### Docker Services
+
+The `docker-compose.yml` includes:
+- **mongodb**: MongoDB 7 database
+- **backend**: NestJS API server (port 3000)
+- **frontend**: React app served by Nginx (port 80)
+
+All services are connected via a Docker network and have health checks configured.
 
 ## API Endpoints
 
@@ -118,7 +140,7 @@ The frontend will run on `http://localhost:3001` (or the next available port)
 
 ## API Documentation
 
-Once the backend is running, visit `http://localhost:3000/api` to access the Swagger API documentation. You can test all endpoints directly from the Swagger UI.
+Once the Docker containers are running, visit `http://localhost:3000/api` to access the Swagger API documentation. You can test all endpoints directly from the Swagger UI.
 
 ## Project Structure
 
@@ -140,6 +162,8 @@ Easygenerator/
 │   │   ├── app.controller.ts
 │   │   ├── app.module.ts
 │   │   └── main.ts
+│   ├── Dockerfile
+│   ├── .dockerignore
 │   └── package.json
 ├── frontend/
 │   ├── src/
@@ -158,7 +182,12 @@ Easygenerator/
 │   │   ├── App.css
 │   │   ├── index.tsx
 │   │   └── index.css
+│   ├── Dockerfile
+│   ├── nginx.conf
+│   ├── .dockerignore
 │   └── package.json
+├── docker-compose.yml
+├── .env.example
 └── README.md
 ```
 
@@ -178,43 +207,99 @@ The backend uses Winston for logging:
 - File logging to `logs/error.log` (errors only)
 - File logging to `logs/combined.log` (all logs)
 
-## Testing
+## Docker Configuration
 
-### Backend Tests
+### Environment Variables
+
+You can customize the Docker setup by creating a `.env` file in the root directory:
+
+1. **Copy the example file:**
 ```bash
-cd backend
-npm test
+cp .env.example .env
 ```
 
-### Frontend Tests
-```bash
-cd frontend
-npm test
+2. **Edit `.env` file** with your preferred settings:
+
+```env
+# External Access Configuration (accessible from your computer)
+MONGODB_PORT=27017          # Access MongoDB: localhost:27017
+BACKEND_PORT=3000           # Access API: http://localhost:3000
+FRONTEND_PORT=80            # Access website: http://localhost
+REACT_APP_API_URL=http://localhost:3000  # Frontend API endpoint
+
+# MongoDB Configuration (for local Docker MongoDB)
+MONGO_INITDB_DATABASE=easygenerator
+MONGO_ROOT_USERNAME=admin
+MONGO_ROOT_PASSWORD=your-secure-password-here
+
+# Backend Configuration
+JWT_SECRET=your-secret-key-change-in-production
+NODE_ENV=production
+FRONTEND_URL=http://localhost
+
+# Optional: MongoDB Atlas (external cloud database)
+# If set, this will be used instead of local Docker MongoDB
+# MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/easygenerator
 ```
 
-## Production Build
+**Key Points:**
+- ⚠️ `.env` file is **REQUIRED** - Docker Compose will fail without it
+- ⚠️ All variables must be set
+- ✅ **Local MongoDB**: Connection is built from `MONGO_ROOT_USERNAME`, `MONGO_ROOT_PASSWORD`, `MONGO_INITDB_DATABASE`
+- ✅ Modify ports without editing docker-compose.yml
+- ✅ All changes in one place (`.env` file)
 
-### Backend
-```bash
-cd backend
-npm run build
-npm run start:prod
+**Note:** The backend automatically builds the MongoDB connection string from the credentials. If you need to use MongoDB Atlas or an external database, you would need to modify the backend code to support `MONGODB_URI` environment variable.
+
+**Example: Change MongoDB port:**
+```env
+MONGODB_PORT=27018  # Access via localhost:27018
 ```
 
-### Frontend
+### Ports
+
+- **Frontend**: Port 80 (http://localhost)
+- **Backend**: Port 3000 (http://localhost:3000)
+- **MongoDB**: Port 27017 (localhost:27017)
+
+### Volumes
+
+- MongoDB data is persisted in a Docker volume (`mongodb_data`)
+- Backend logs are mounted to `./backend/logs` directory
+
+### Health Checks
+
+All services include health checks:
+- **MongoDB**: Checks database connectivity using `mongosh ping`
+- **Backend**: Checks HTTP endpoint availability on internal port 3000
+- **Frontend**: Checks Nginx `/health` endpoint on internal port 80
+
+### Building Individual Services
+
+**Build only backend:**
 ```bash
-cd frontend
-npm run build
+docker-compose build backend
 ```
 
-The production build will be in the `frontend/build` directory.
+**Build only frontend:**
+```bash
+docker-compose build frontend
+```
+
+**Run specific service:**
+```bash
+docker-compose up backend
+```
 
 ## Notes
 
-- Make sure to change the `JWT_SECRET` in production
-- Update `MONGODB_URI` to point to your production database
-- Configure CORS properly for production
-- The frontend expects the backend to be running on port 3000 by default
+- ⚠️ **`.env` file is REQUIRED** - Docker Compose will fail if it doesn't exist or if any required variable is missing
+- ⚠️ **No default values** - All environment variables must be explicitly set in `.env` file
+- MongoDB connection string is automatically built from credentials in the backend code
+- MongoDB data is persisted in a Docker volume (`mongodb_data`), so data will survive container restarts
+- Backend logs are available in `./backend/logs` directory (mounted as volume)
+- To reset everything, use `docker-compose down -v` (this will remove all data including MongoDB)
+- Health checks ensure services are ready before dependent services start
 
 ## Technologies Used
 
@@ -233,6 +318,12 @@ The production build will be in the `frontend/build` directory.
 - React Router
 - Axios for HTTP requests
 - Context API for state management
+- Nginx (for production Docker build)
+
+### DevOps
+- Docker
+- Docker Compose
+- Multi-stage Docker builds
 
 ## License
 
