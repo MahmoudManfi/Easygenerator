@@ -1,14 +1,46 @@
 import { NestFactory } from '@nestjs/core';
+import type { INestApplication } from '@nestjs/common';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { WinstonModule } from 'nest-winston';
 import * as winston from 'winston';
+import cookieParser from 'cookie-parser';
 import type { TransformableInfo } from 'logform';
 import { AppModule } from './app.module';
+import { getFrontendUrl, getPort } from './utils/env.util';
+import { AUTH_COOKIE_NAME } from './constants/auth.constants';
 
+/**
+ * Main bootstrap function - initializes and starts the NestJS application
+ */
 async function bootstrap() {
-  // Create Winston logger
-  const logger = WinstonModule.createLogger({
+  const logger = createLogger();
+  const app = await NestFactory.create(AppModule, {
+    logger,
+  });
+
+  configureMiddleware(app);
+  configureSwagger(app);
+
+  const port = getPortNumber();
+  await app.listen(port);
+
+  logger.log(
+    `Application is running on: http://localhost:${port}`,
+    'Bootstrap',
+  );
+  logger.log(
+    `Swagger documentation: http://localhost:${port}/api`,
+    'Bootstrap',
+  );
+}
+
+/**
+ * Creates and configures the Winston logger
+ * @returns Configured Winston logger instance
+ */
+function createLogger() {
+  return WinstonModule.createLogger({
     transports: [
       new winston.transports.Console({
         format: winston.format.combine(
@@ -44,14 +76,20 @@ async function bootstrap() {
       }),
     ],
   });
+}
 
-  const app = await NestFactory.create(AppModule, {
-    logger,
-  });
+/**
+ * Configures middleware for the NestJS application
+ * @param app - NestJS application instance
+ */
+function configureMiddleware(app: INestApplication) {
+  // Enable cookie parser
+  app.use(cookieParser());
 
   // Enable CORS for frontend
+  const frontendUrl = getFrontendUrl();
   app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3001',
+    origin: frontendUrl,
     credentials: true,
   });
 
@@ -63,36 +101,43 @@ async function bootstrap() {
       transform: true,
     }),
   );
+}
 
-  // Swagger API documentation
+/**
+ * Configures Swagger API documentation
+ * @param app - NestJS application instance
+ */
+function configureSwagger(app: INestApplication) {
   const config = new DocumentBuilder()
     .setTitle('EasyGenerator API')
-    .setDescription('Authentication API for EasyGenerator application')
-    .setVersion('1.0')
-    .addBearerAuth(
-      {
-        type: 'http',
-        scheme: 'bearer',
-        bearerFormat: 'JWT',
-        name: 'JWT',
-        description: 'Enter JWT token',
-        in: 'header',
-      },
-      'JWT-auth',
+    .setDescription(
+      'Authentication API for EasyGenerator application. Uses httpOnly cookies for authentication.',
     )
+    .setVersion('1.0')
+    .addCookieAuth(AUTH_COOKIE_NAME, {
+      type: 'http',
+      in: 'cookie',
+      scheme: 'bearer',
+      description:
+        'JWT token stored in httpOnly cookie. Set automatically on signup/signin.',
+    })
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
-
-  const port = process.env.PORT || 3000;
-  await app.listen(port);
-  logger.log(
-    `Application is running on: http://localhost:${port}`,
-    'Bootstrap',
-  );
-  logger.log(
-    `Swagger documentation: http://localhost:${port}/api`,
-    'Bootstrap',
-  );
 }
+
+/**
+ * Gets and validates the port from environment variables
+ * @returns Valid port number
+ * @throws Error if PORT is missing or invalid
+ */
+function getPortNumber(): number {
+  const portString = getPort();
+  const port = Number.parseInt(portString, 10);
+  if (Number.isNaN(port)) {
+    throw new Error(`Invalid PORT value: ${portString}. Must be a number.`);
+  }
+  return port;
+}
+
 void bootstrap();

@@ -1,37 +1,16 @@
 import axios from "axios";
+import { getApiUrl } from "../utils/env.util";
+import { SignUpData, SignInData, AuthResponse } from "../types/auth.types";
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:3000";
+const API_BASE_URL = getApiUrl();
 
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
   },
+  withCredentials: true, // Send cookies with requests
 });
-
-// Add token to requests if available
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
-export interface SignUpData {
-  email: string;
-  name: string;
-  password: string;
-}
-
-export interface SignInData {
-  email: string;
-  password: string;
-}
-
-export interface AuthResponse {
-  access_token: string;
-}
 
 export const authApi = {
   signUp: async (data: SignUpData): Promise<AuthResponse> => {
@@ -41,6 +20,15 @@ export const authApi = {
 
   signIn: async (data: SignInData): Promise<AuthResponse> => {
     const response = await api.post<AuthResponse>("/auth/signin", data);
+    return response.data;
+  },
+
+  logout: async (): Promise<void> => {
+    await api.post("/auth/logout");
+  },
+
+  checkAuth: async (): Promise<AuthResponse> => {
+    const response = await api.get<AuthResponse>("/auth/check");
     return response.data;
   },
 };

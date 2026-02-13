@@ -47,3 +47,57 @@
   box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
 }
 
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+  .welcome-container {
+    padding: 15px;
+  }
+
+  .welcome-card {
+    padding: 40px 25px;
+    max-width: 100%;
+  }
+
+  .welcome-card h1 {
+    font-size: 28px;
+    margin-bottom: 15px;
+  }
+
+  .welcome-card p {
+    font-size: 16px;
+    margin-bottom: 25px;
+  }
+
+  .logout-button {
+    padding: 14px 28px;
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  .welcome-container {
+    padding: 10px;
+  }
+
+  .welcome-card {
+    padding: 30px 20px;
+    border-radius: 8px;
+  }
+
+  .welcome-card h1 {
+    font-size: 24px;
+    margin-bottom: 12px;
+  }
+
+  .welcome-card p {
+    font-size: 15px;
+    margin-bottom: 20px;
+  }
+
+  .logout-button {
+    padding: 12px 24px;
+    font-size: 14px;
+    width: 100%;
+  }
+}
+

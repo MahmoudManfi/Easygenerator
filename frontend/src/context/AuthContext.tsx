@@ -1,58 +1,57 @@
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  ReactNode,
-} from "react";
+import React, { createContext, useState, useEffect, ReactNode } from "react";
+import { authApi } from "../api/authApi";
+import { User } from "../types/auth.types";
 
 interface AuthContextType {
-  token: string | null;
-  isAuthenticated: boolean;
-  login: (token: string) => void;
-  logout: () => void;
+  user: User | null;
+  isLoading: boolean;
+  login: (user: User) => void;
+  logout: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-// eslint-disable-next-line react-refresh/only-export-components
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
-};
+export const AuthContext = createContext<AuthContextType | undefined>(
+  undefined,
+);
 
 interface AuthProviderProps {
   children: ReactNode;
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [token, setToken] = useState<string | null>(
-    localStorage.getItem("token"),
-  );
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
+  // Check authentication status on mount
   useEffect(() => {
-    if (token) {
-      localStorage.setItem("token", token);
-    } else {
-      localStorage.removeItem("token");
-    }
-  }, [token]);
+    const verifyAuthentication = async (): Promise<void> => {
+      try {
+        const { user: userData } = await authApi.checkAuth();
+        setUser(userData);
+      } catch {
+        setUser(null);
+      }
+    };
 
-  const login = (newToken: string) => {
-    setToken(newToken);
+    const checkAuth = async () => {
+      await verifyAuthentication();
+      setIsLoading(false);
+    };
+
+    void checkAuth();
+  }, []);
+
+  const login = (userData: User) => {
+    setUser(userData);
   };
 
-  const logout = () => {
-    setToken(null);
-    localStorage.removeItem("token");
+  const logout = async () => {
+    await authApi.logout();
+    setUser(null);
   };
 
   const value: AuthContextType = {
-    token,
-    isAuthenticated: !!token,
+    user,
+    isLoading,
     login,
     logout,
   };

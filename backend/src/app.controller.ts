@@ -4,19 +4,18 @@ import {
   ApiTags,
   ApiOperation,
   ApiResponse,
-  ApiBearerAuth,
+  ApiCookieAuth,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
-import { AppService } from './app.service';
+import { AUTH_COOKIE_NAME } from './constants/auth.constants';
+import { UserResponse } from './auth/types/auth.types';
 
 @ApiTags('Application')
 @Controller()
 export class AppController {
-  constructor(private readonly appService: AppService) {}
-
   @Get('protected')
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
+  @ApiCookieAuth(AUTH_COOKIE_NAME)
   @ApiOperation({ summary: 'Protected endpoint - requires authentication' })
   @ApiResponse({
     status: 200,
@@ -31,9 +30,10 @@ export class AppController {
         user: {
           type: 'object',
           properties: {
-            userId: { type: 'string' },
             email: { type: 'string' },
+            name: { type: 'string' },
           },
+          required: ['email', 'name'],
         },
       },
     },
@@ -41,7 +41,7 @@ export class AppController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   getProtected(
     @Request()
-    req: ExpressRequest & { user?: { userId: string; email: string } },
+    req: ExpressRequest & { user: UserResponse },
   ) {
     return {
       message: 'This is a protected endpoint',
@@ -49,8 +49,13 @@ export class AppController {
     };
   }
 
-  @Get()
-  getHello(): string {
-    return this.appService.getHello();
+  @Get('health')
+  @ApiOperation({ summary: 'Health check endpoint' })
+  @ApiResponse({
+    status: 200,
+    description: 'Service is healthy (HTTP 200 indicates health)',
+  })
+  getHealth() {
+    return {};
   }
 }

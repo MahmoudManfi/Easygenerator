@@ -1,10 +1,12 @@
 import React from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes as RouterRoutes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
-import SignUp from "./components/SignUp";
-import SignIn from "./components/SignIn";
-import Welcome from "./components/Welcome";
+import SignUpPage from "./pages/SignUpPage";
+import SignInPage from "./pages/SignInPage";
+import WelcomePage from "./pages/WelcomePage";
+import NotFoundPage from "./pages/NotFoundPage";
 import ProtectedRoute from "./components/ProtectedRoute";
+import { Routes } from "./constants/routes";
 import "./App.css";
 
 const App: React.FC = () => {
@@ -12,19 +14,20 @@ const App: React.FC = () => {
     <AuthProvider>
       <BrowserRouter>
         <div className="App">
-          <Routes>
-            <Route path="/signup" element={<SignUp />} />
-            <Route path="/signin" element={<SignIn />} />
+          <RouterRoutes>
+            <Route path={Routes.SIGNUP} element={<SignUpPage />} />
+            <Route path={Routes.SIGNIN} element={<SignInPage />} />
             <Route
-              path="/app"
+              path={Routes.ROOT}
               element={
                 <ProtectedRoute>
-                  <Welcome />
+                  <WelcomePage />
                 </ProtectedRoute>
               }
             />
-            <Route path="/" element={<Navigate to="/signin" replace />} />
-          </Routes>
+            {/* Catch-all route for 404 pages */}
+            <Route path="*" element={<NotFoundPage />} />
+          </RouterRoutes>
         </div>
       </BrowserRouter>
     </AuthProvider>

@@ -119,3 +119,62 @@
   text-decoration: underline;
 }
 
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+  .auth-container {
+    padding: 15px;
+  }
+
+  .auth-card {
+    padding: 30px 20px;
+    max-width: 100%;
+  }
+
+  .auth-card h2 {
+    font-size: 24px;
+    margin-bottom: 25px;
+  }
+
+  .form-group input {
+    font-size: 16px; /* Prevents zoom on iOS */
+    padding: 14px;
+  }
+
+  .submit-button {
+    padding: 16px;
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+}
+
+@media (max-width: 480px) {
+  .auth-container {
+    padding: 10px;
+  }
+
+  .auth-card {
+    padding: 25px 15px;
+    border-radius: 8px;
+  }
+
+  .auth-card h2 {
+    font-size: 22px;
+    margin-bottom: 20px;
+  }
+
+  .form-group {
+    margin-bottom: 18px;
+  }
+
+  .form-group label {
+    font-size: 13px;
+  }
+
+  .password-hint {
+    font-size: 11px;
+  }
+
+  .auth-link {
+    font-size: 13px;
+  }
+}
+
